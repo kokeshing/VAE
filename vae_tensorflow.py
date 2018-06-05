@@ -9,7 +9,7 @@ import functools
 # Import MNIST data
 from tensorflow.examples.tutorials.mnist import input_data
 
-STD_EPSILON = 1e-07
+# STD_EPSILON = 1e-07
 
 class ReiteratableWrapper(object):
     def __init__(self, f):
@@ -47,7 +47,7 @@ class VAE(object):
         self.encoder_var = tf.layers.dense(self.encoder_var, units=self.z_dim, activation=tf.nn.softplus)
 
         # sampling
-        self.epsilon = tf.random_normal(shape=(self.z_dim,), mean=0.0, stddev=STD_EPSILON)
+        self.epsilon = tf.random_normal(shape=(self.z_dim,), mean=0.0, stddev=1.0)
         self.z = self.encoder_mean + self.encoder_var * self.epsilon
 
         # decoder
@@ -58,13 +58,14 @@ class VAE(object):
         self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn2')
         self.decoder = tf.layers.dense(self.decoder, units=self.input_dim, activation=tf.sigmoid, name='output')
 
+    # ここが違いそう
     def loss_func(self, x, x_hat):
         kl_div = - 0.5 * tf.reduce_mean(tf.reduce_sum(1 + tf.log(tf.square(self.encoder_var)) - tf.square(self.encoder_mean) - tf.square(self.encoder_var), axis=-1))
         log_likehood = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=x, logits=x_hat), axis=-1)
 
         tf.summary.tensor_summary('loss', kl_div + log_likehood)
 
-        return tf.reduce_mean(kl_div + log_likehood)
+        return kl_div + log_likehood
 
     def vae_train(self, batch_size, steps, lr, mn, save_dir):
         self.batch_size = batch_size
@@ -86,7 +87,7 @@ class VAE(object):
 
             saver = tf.train.Saver()
 
-            ''' generatorを引数にしたい（願望）
+            ''' generatorを引数にしたい
             for i in range(epoch):
                 for batch_x in reiteratable_x_generator:
                     feed_dict = {self.x: batch_x, self.z:sampling(self.encoder_mean, self.encoder_var)}
@@ -104,8 +105,12 @@ class VAE(object):
 
                 if i % 1000 == 0:
                     print(f'steps {i}, Loss: {l}')
-                    #save_path = os.path.join(save_dir + f'model_epoch:{i}_loss:{l}.ckpt')
-                    #saver.save(sess, save_path)
+
+                    '''
+                    save_path = os.path.join(save_dir + f'model_epoch:{i}_loss:{l}.ckpt')
+                    saver.save(sess, save_path)
+                    '''
+
 
     def generate_image(self, generate_num, save_dir, batch_size):
         self.batch_size = batch_size
