@@ -9,8 +9,8 @@ IMG_SAVE_DIR = "./result_img/"
 # parameters
 lr = 0.001
 mn = 0.9
-steps = 10000
-batch_size = 64
+steps = 30000
+batch_size = 128
 
 # network structure
 image_dim = 784
@@ -21,4 +21,4 @@ vae = vae_tensorflow.VAE(input_dim=image_dim, hidden_dim=hidden_dim, z_dim=laten
 
 vae.vae_train(batch_size=batch_size, steps=steps, lr=lr, mn=mn, save_dir=SAVE_DIR)
 
-vae.generate_image(generate_num=20, save_dir=IMG_SAVE_DIR, batch_size=batch_size)
+#vae.generate_image(generate_num=20, save_dir=IMG_SAVE_DIR, batch_size=batch_size)

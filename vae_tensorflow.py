@@ -24,49 +24,51 @@ class VAE(object):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.z_dim = z_dim
-        self.batch_size = 128
+        self.batch_size = 64
 
         self.x = tf.placeholder(tf.float32, [None, self.input_dim])
 
         # encoder
         self.encoder = tf.layers.dense(self.x, units=self.hidden_dim)
-        #self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
-        self.encoder = tf.nn.relu(self.encoder)
-        #self.encoder = tf.layers.dense(self.encoder, units=self.hidden_dim)
-        #self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
+        self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
+        self.encoder = tf.nn.softplus(self.encoder)
+        self.encoder = tf.layers.dense(self.encoder, units=self.hidden_dim)
+        self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
 
-        #self.encoder_mean = tf.nn.relu(self.encoder)
-        #self.encoder_mean = tf.layers.dense(self.encoder_mean, units=self.hidden_dim)
-        #self.encoder_mean = tf.layers.batch_normalization(self.encoder_mean, training=True)
-        #self.encoder_mean = tf.nn.relu(self.encoder_mean)
-        self.encoder_mean = tf.layers.dense(self.encoder, units=self.z_dim)
+        self.encoder_mean = tf.nn.softplus(self.encoder)
+        self.encoder_mean = tf.layers.dense(self.encoder_mean, units=self.hidden_dim)
+        self.encoder_mean = tf.layers.batch_normalization(self.encoder_mean, training=True)
+        self.encoder_mean = tf.nn.softplus(self.encoder_mean)
+        self.encoder_mean = tf.layers.dense(self.encoder_mean, units=self.z_dim)
 
-        #self.encoder_std = tf.nn.relu(self.encoder)
-        #self.encoder_std = tf.layers.dense(self.encoder_std, units=self.hidden_dim)
-        #self.encoder_std = tf.layers.batch_normalization(self.encoder_std, training=True)
-        #self.encoder_std = tf.nn.relu(self.encoder_std)
-        self.encoder_std = tf.layers.dense(self.encoder, units=self.z_dim)
+        self.encoder_std = tf.layers.dense(self.encoder, units=self.hidden_dim)
+        self.encoder_std = tf.layers.batch_normalization(self.encoder_std, training=True)
+        self.encoder_std = tf.nn.softplus(self.encoder_std)
+        self.encoder_std = tf.layers.dense(self.encoder_std, units=self.z_dim, activation=tf.nn.softplus)
 
         # sampling
         self.epsilon = tf.random_normal(shape=(self.z_dim,), mean=0.0, stddev=1.0)
-        self.z = self.encoder_mean + tf.exp(self.encoder_std / 2) * self.epsilon
+        self.z = self.encoder_mean + tf.exp(self.encoder_std / 2.0) * self.epsilon
 
         # decoder
         self.decoder = tf.layers.dense(self.z, units=self.hidden_dim, name='fc1')
-        #self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn1')
-        self.decoder = tf.nn.relu(self.decoder)
-        #self.decoder = tf.layers.dense(self.decoder, units=self.hidden_dim, name='fc2')
-        #self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn2')
+        self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn1')
+        self.decoder = tf.nn.softplus(self.decoder)
+        self.decoder = tf.layers.dense(self.decoder, units=self.hidden_dim, name='fc2')
+        self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn2')
         self.decoder = tf.layers.dense(self.decoder, units=self.input_dim, activation=tf.sigmoid, name='output')
 
     # ここが違いそう
     def loss_func(self, x, x_hat):
-        kl_div = tf.reduce_mean(- 0.5 * tf.reduce_sum(1 + self.encoder_std - tf.square(self.encoder_mean) - tf.exp(self.encoder_std)))
-        log_likehood = tf.reduce_mean(-tf.reduce_sum(x * tf.log(1e-10 + x_hat) + (1 - x) * tf.log(1e-10 + 1 - x_hat), 1))
+        kl_div = 1 + self.encoder_std - tf.square(self.encoder_mean) - tf.exp(self.encoder_std)
+        kl_div = -0.5 * tf.reduce_sum(kl_div, 1)
+
+        log_likehood = x * tf.log(1e-10 + x_hat) + (1 - x) * tf.log(1e-10 + 1 - x_hat)
+        log_likehood = -tf.reduce_sum(log_likehood, 1)
 
         tf.summary.tensor_summary('loss', kl_div + log_likehood)
 
-        return kl_div + log_likehood
+        return tf.reduce_mean(kl_div + log_likehood)
 
     def vae_train(self, batch_size, steps, lr, mn, save_dir):
         self.batch_size = batch_size
@@ -112,17 +114,17 @@ class VAE(object):
                     saver.save(sess, save_path)
                     '''
 
-            save_path = os.path.join("./result_img/" + "figure.png")
+            save_path = os.path.join(save_dir + "figure.png")
             generate_num = 20
 
-            x_axis = np.linspace(-3, 3, generate_num)
-            y_axis = np.linspace(-3, 3, generate_num)
+            x_axis = np.linspace(-30000, 30000, generate_num)
+            y_axis = np.linspace(-30000, 30000, generate_num)
 
             canvas = np.empty((28 * generate_num, 28 * generate_num))
 
             for i, yi in enumerate(x_axis):
                 for j, xi in enumerate(y_axis):
-                    z_mu = np.array([[xi, yi]])
+                    z_mu = np.array([[xi, yi]] * self.batch_size)
                     x_mean = sess.run(self.decoder, feed_dict={self.z: z_mu})
                     canvas[(generate_num - i - 1) * 28:(generate_num - i) * 28, j * 28:(j + 1) * 28] = x_mean[0].reshape(28, 28)
 
