@@ -30,21 +30,22 @@ class VAE(object):
 
         # encoder
         self.encoder = tf.layers.dense(self.x, units=self.hidden_dim)
-        self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
-        self.encoder = tf.nn.softplus(self.encoder)
+        #self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
+        self.encoder = tf.nn.relu(self.encoder)
         self.encoder = tf.layers.dense(self.encoder, units=self.hidden_dim)
-        self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
+        #self.encoder = tf.layers.batch_normalization(self.encoder, training=True)
+        self.encoder = tf.nn.relu(self.encoder)
 
-        self.encoder_mean = tf.nn.softplus(self.encoder)
-        self.encoder_mean = tf.layers.dense(self.encoder_mean, units=self.hidden_dim)
-        self.encoder_mean = tf.layers.batch_normalization(self.encoder_mean, training=True)
-        self.encoder_mean = tf.nn.softplus(self.encoder_mean)
+        #self.encoder_mean = tf.nn.softplus(self.encoder)
+        self.encoder_mean = tf.layers.dense(self.encoder, units=self.hidden_dim)
+        #self.encoder_mean = tf.layers.batch_normalization(self.encoder_mean, training=True)
+        self.encoder_mean = tf.nn.relu(self.encoder_mean)
         self.encoder_mean = tf.layers.dense(self.encoder_mean, units=self.z_dim)
 
         self.encoder_std = tf.layers.dense(self.encoder, units=self.hidden_dim)
-        self.encoder_std = tf.layers.batch_normalization(self.encoder_std, training=True)
-        self.encoder_std = tf.nn.softplus(self.encoder_std)
-        self.encoder_std = tf.layers.dense(self.encoder_std, units=self.z_dim, activation=tf.nn.softplus)
+        #self.encoder_std = tf.layers.batch_normalization(self.encoder_std, training=True)
+        self.encoder_std = tf.nn.relu(self.encoder_std)
+        self.encoder_std = tf.layers.dense(self.encoder_std, units=self.z_dim)
 
         # sampling
         self.epsilon = tf.random_normal(shape=(self.z_dim,), mean=0.0, stddev=1.0)
@@ -52,10 +53,11 @@ class VAE(object):
 
         # decoder
         self.decoder = tf.layers.dense(self.z, units=self.hidden_dim, name='fc1')
-        self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn1')
-        self.decoder = tf.nn.softplus(self.decoder)
+        #self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn1')
+        self.decoder = tf.nn.relu(self.decoder)
         self.decoder = tf.layers.dense(self.decoder, units=self.hidden_dim, name='fc2')
-        self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn2')
+        self.decoder = tf.nn.relu(self.decoder)
+        #self.decoder = tf.layers.batch_normalization(self.decoder, training=True, name='bn2')
         self.decoder = tf.layers.dense(self.decoder, units=self.input_dim, activation=tf.sigmoid, name='output')
 
     # ここが違いそう
@@ -117,8 +119,8 @@ class VAE(object):
             save_path = os.path.join(save_dir + "figure.png")
             generate_num = 20
 
-            x_axis = np.linspace(-30000, 30000, generate_num)
-            y_axis = np.linspace(-30000, 30000, generate_num)
+            x_axis = np.linspace(-3, 3, generate_num)
+            y_axis = np.linspace(-3, 3, generate_num)
 
             canvas = np.empty((28 * generate_num, 28 * generate_num))
 
