@@ -3,7 +3,7 @@ import sys
 import tensorflow as tf
 import vae_tensorflow
 
-SAVE_DIR = "C:/Users/ennpe/src/VAE/result/"
+SAVE_DIR = "./result/"
 IMG_SAVE_DIR = "./result_img/"
 
 # parameters
@@ -21,4 +21,4 @@ vae = vae_tensorflow.VAE(input_dim=image_dim, hidden_dim=hidden_dim, z_dim=laten
 
 vae.vae_train(batch_size=batch_size, steps=steps, lr=lr, mn=mn, save_dir=SAVE_DIR)
 
-#vae.generate_image(generate_num=20, save_dir=IMG_SAVE_DIR, batch_size=batch_size)
+vae.generate_image(generate_num=20, save_dir=IMG_SAVE_DIR, batch_size=batch_size, trained_model=SAVE_DIR)
